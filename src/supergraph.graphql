@@ -1,0 +1,286 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.2", for: EXECUTION)
+{
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+directive @join__field(graph: join__Graph!, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+type BallotEntry
+  @join__type(graph: VOTING)
+{
+  id: Int!
+  election_id: Int!
+  table_name: String!
+  row: Int!
+  created_by: String!
+}
+
+input BallotEntryInput
+  @join__type(graph: VOTING)
+{
+  election_id: Int!
+  table_name: String!
+  row: Int!
+  created_by: String!
+}
+
+type BallotEntryOutput
+  @join__type(graph: VOTING)
+{
+  ballotEntry: BallotEntry!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+
+type Discussion
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+{
+  id: Int!
+  app: Int!
+  org: Int!
+  table_name: String!
+  row: Int!
+  posts: [Post]!
+}
+
+type Election
+  @join__type(graph: VOTING)
+{
+  id: Int!
+  app_id: Int!
+  name: String!
+  table_name: String!
+  row: Int!
+  created_by: String!
+}
+
+input ElectionIdInput
+  @join__type(graph: VOTING)
+{
+  table_name: String!
+  row: Int!
+}
+
+input ElectionInput
+  @join__type(graph: VOTING)
+{
+  app_id: Int!
+  name: String!
+  created_by: String!
+  table_name: String!
+  row: Int!
+}
+
+type ElectionOutput
+  @join__type(graph: VOTING)
+{
+  election: Election!
+}
+
+scalar join__FieldSet
+
+enum join__Graph {
+  DISCUSSIONS @join__graph(name: "discussions", url: "http://localhost:8202/graphql")
+  NOTIFICATIONS @join__graph(name: "notifications", url: "http://localhost:8204/graphql")
+  VOTING @join__graph(name: "voting", url: "http://localhost:8210/graphql")
+}
+
+scalar link__Import
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+type Mutation
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+  @join__type(graph: VOTING)
+{
+  createDiscussion(newDiscussionData: NewDiscussionInput!): Discussion! @join__field(graph: DISCUSSIONS)
+  deleteDiscussion(id: Int!): Boolean! @join__field(graph: DISCUSSIONS)
+  createPost(newPostData: NewPostInput!): Post! @join__field(graph: DISCUSSIONS)
+  updatePost(id: Float!, data: NewPostInput!, userId: Float!): Post! @join__field(graph: DISCUSSIONS)
+  deletePost(id: Int!, userId: Int!): Boolean! @join__field(graph: DISCUSSIONS)
+  deletePostsByDiscussionId(discussionId: Int!): Boolean! @join__field(graph: DISCUSSIONS)
+  createReaction(newReactionData: NewReactionInput!): Reaction! @join__field(graph: DISCUSSIONS)
+  updateReaction(id: Float!, data: NewReactionInput!, userId: Float!): Reaction! @join__field(graph: DISCUSSIONS)
+  deleteReaction(id: Int!, userId: Int!): Boolean! @join__field(graph: DISCUSSIONS)
+  createUser(email: String!): User! @join__field(graph: DISCUSSIONS)
+  acknowledgedNotification(id: Int!): Int! @join__field(graph: NOTIFICATIONS)
+  setAcknowledgedNotificationsByUserId(userId: Int!): Boolean! @join__field(graph: NOTIFICATIONS)
+  deleteNotification(id: Int!): Int! @join__field(graph: NOTIFICATIONS)
+  deleteNotificationsByUserId(userId: Int!): Boolean! @join__field(graph: NOTIFICATIONS)
+  createElection(input: ElectionInput!): ElectionOutput! @join__field(graph: VOTING)
+  deleteElection(id: Float!): Boolean! @join__field(graph: VOTING)
+  createBallotEntry(input: BallotEntryInput!): BallotEntryOutput! @join__field(graph: VOTING)
+  deleteBallotEntry(id: Float!): Boolean! @join__field(graph: VOTING)
+  createVote(input: VoteInput!): VoteOutput! @join__field(graph: VOTING)
+  updateVote(input: UpdateVote!): Vote! @join__field(graph: VOTING)
+  deleteVote(id: Float!): Boolean! @join__field(graph: VOTING)
+}
+
+input NewDiscussionInput
+  @join__type(graph: DISCUSSIONS)
+{
+  app: Int
+  org: Int
+  table_name: String!
+  row: Int!
+}
+
+input NewPostInput
+  @join__type(graph: DISCUSSIONS)
+{
+  discussion_id: Int!
+  user_id: Int!
+  quill_text: String!
+  plain_text: String!
+  postgres_language: String = "simple"
+}
+
+input NewReactionInput
+  @join__type(graph: DISCUSSIONS)
+{
+  post_id: Int!
+  user_id: Int!
+  content: String!
+}
+
+type Notification
+  @join__type(graph: NOTIFICATIONS)
+{
+  id: Int!
+  user_id: Int!
+  table_name: String!
+  row: Int!
+  acknowledged: Boolean!
+  content: String!
+  created_at: DateTime!
+}
+
+type Post
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+{
+  id: Int!
+  discussion: Discussion!
+  reactions: [Reaction]!
+  user_id: Int!
+  quill_text: String!
+  plain_text: String!
+  postgres_language: String!
+  created_at: DateTime!
+}
+
+type Query
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+  @join__type(graph: VOTING)
+{
+  discussion(id: Int!): Discussion! @join__field(graph: DISCUSSIONS)
+  discussions(table_name: String!, row: Int!): [Discussion!]! @join__field(graph: DISCUSSIONS)
+  post(id: Float!): Post! @join__field(graph: DISCUSSIONS)
+  postsByDiscussionId(discussionId: Int!): [Post!]! @join__field(graph: DISCUSSIONS)
+  reaction(id: Float!): Reaction! @join__field(graph: DISCUSSIONS)
+  reactionsByPostId(postId: Int!): [Reaction!]! @join__field(graph: DISCUSSIONS)
+  notifications(userId: Int!): [Notification!]! @join__field(graph: NOTIFICATIONS)
+  election(id: Float!): Election! @join__field(graph: VOTING)
+  elections: [Election!]! @join__field(graph: VOTING)
+  electionByTableName(input: ElectionIdInput!): Election! @join__field(graph: VOTING)
+  ballotEntry(id: Float!): BallotEntry! @join__field(graph: VOTING)
+  ballotEntries: [BallotEntry!]! @join__field(graph: VOTING)
+  ballotEntryByRowId(row: Float!): BallotEntry! @join__field(graph: VOTING)
+  vote(id: Float!): Vote! @join__field(graph: VOTING)
+  votes(user_id: String): [Vote!]! @join__field(graph: VOTING)
+}
+
+type Reaction
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+{
+  id: Int!
+  post: Post!
+  user_id: Int!
+  content: String!
+}
+
+type Subscription
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+{
+  discussionCreated: Discussion! @join__field(graph: DISCUSSIONS)
+  postCreated(discussionId: Int!): Post! @join__field(graph: DISCUSSIONS)
+  postDeleted: Int! @join__field(graph: DISCUSSIONS)
+  reactionCreated: Reaction! @join__field(graph: DISCUSSIONS)
+  reactionDeleted: Int! @join__field(graph: DISCUSSIONS)
+  notificationAdded(userId: Int!): Notification! @join__field(graph: NOTIFICATIONS)
+}
+
+input UpdateVote
+  @join__type(graph: VOTING)
+{
+  vote_id: Int!
+  user_id: String!
+  up: Boolean!
+}
+
+type User
+  @join__type(graph: DISCUSSIONS)
+{
+  user_id: Int!
+  active: Boolean!
+  email: String!
+  is_email_verified: Boolean!
+  password: String!
+  created_at: DateTime!
+}
+
+type Vote
+  @join__type(graph: VOTING)
+{
+  id: Int!
+  ballot_entry: BallotEntry!
+  ballot_entry_id: Int!
+  user_id: String!
+  up: Boolean!
+}
+
+input VoteInput
+  @join__type(graph: VOTING)
+{
+  ballot_entry_id: Int!
+  user_id: String!
+  up: Boolean!
+}
+
+type VoteOutput
+  @join__type(graph: VOTING)
+{
+  vote: Vote!
+}

@@ -1,0 +1,177 @@
+schema
+  @link(url: "https://specs.apollo.dev/link/v1.0")
+  @link(url: "https://specs.apollo.dev/join/v0.2", for: EXECUTION)
+{
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+directive @join__field(graph: join__Graph!, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+directive @join__graph(name: String!, url: String!) on ENUM_VALUE
+
+directive @join__implements(graph: join__Graph!, interface: String!) repeatable on OBJECT | INTERFACE
+
+directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
+
+directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+
+type Discussion
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+{
+  app: Int!
+  id: Int!
+  org: Int!
+  posts: [Post]!
+  row: Int!
+  table_name: String!
+}
+
+scalar join__FieldSet
+
+enum join__Graph {
+  DISCUSSIONS @join__graph(name: "discussions", url: "http://localhost:8202/graphql")
+  NOTIFICATIONS @join__graph(name: "notifications", url: "http://localhost:8204/graphql")
+}
+
+scalar link__Import
+
+enum link__Purpose {
+  """
+  `SECURITY` features provide metadata necessary to securely resolve fields.
+  """
+  SECURITY
+
+  """
+  `EXECUTION` features provide metadata necessary for operation execution.
+  """
+  EXECUTION
+}
+
+type Mutation
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+{
+  createDiscussion(newDiscussionData: NewDiscussionInput!): Discussion! @join__field(graph: DISCUSSIONS)
+  createPost(newPostData: NewPostInput!): Post! @join__field(graph: DISCUSSIONS)
+  createReaction(newReactionData: NewReactionInput!): Reaction! @join__field(graph: DISCUSSIONS)
+  createUser(email: String!): User! @join__field(graph: DISCUSSIONS)
+  deleteDiscussion(id: Int!): Boolean! @join__field(graph: DISCUSSIONS)
+  deletePost(id: Int!, userId: Int!): Boolean! @join__field(graph: DISCUSSIONS)
+  deletePostsByDiscussionId(discussionId: Int!): Boolean! @join__field(graph: DISCUSSIONS)
+  deleteReaction(id: Int!, userId: Int!): Boolean! @join__field(graph: DISCUSSIONS)
+  updatePost(data: NewPostInput!, id: Float!, userId: Float!): Post! @join__field(graph: DISCUSSIONS)
+  updateReaction(data: NewReactionInput!, id: Float!, userId: Float!): Reaction! @join__field(graph: DISCUSSIONS)
+  acknowledgedNotification(id: Int!): Int! @join__field(graph: NOTIFICATIONS)
+  deleteNotification(id: Int!): Int! @join__field(graph: NOTIFICATIONS)
+  deleteNotificationsByUserId(userId: Int!): Boolean! @join__field(graph: NOTIFICATIONS)
+  setAcknowledgedNotificationsByUserId(userId: Int!): Boolean! @join__field(graph: NOTIFICATIONS)
+}
+
+input NewDiscussionInput
+  @join__type(graph: DISCUSSIONS)
+{
+  app: Int
+  org: Int
+  row: Int!
+  table_name: String!
+}
+
+input NewPostInput
+  @join__type(graph: DISCUSSIONS)
+{
+  discussion_id: Int!
+  plain_text: String!
+  postgres_language: String = "simple"
+  quill_text: String!
+  user_id: Int!
+}
+
+input NewReactionInput
+  @join__type(graph: DISCUSSIONS)
+{
+  content: String!
+  post_id: Int!
+  user_id: Int!
+}
+
+type Notification
+  @join__type(graph: NOTIFICATIONS)
+{
+  acknowledged: Boolean!
+  content: String!
+  created_at: DateTime!
+  id: Int!
+  row: Int!
+  table_name: String!
+  user_id: Int!
+}
+
+type Post
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+{
+  created_at: DateTime!
+  discussion: Discussion!
+  id: Int!
+  plain_text: String!
+  postgres_language: String!
+  quill_text: String!
+  reactions: [Reaction]!
+  user_id: Int!
+}
+
+type Query
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+{
+  discussion(id: Int!): Discussion! @join__field(graph: DISCUSSIONS)
+  discussions(row: Int!, table_name: String!): [Discussion!]! @join__field(graph: DISCUSSIONS)
+  post(id: Float!): Post! @join__field(graph: DISCUSSIONS)
+  postsByDiscussionId(discussionId: Int!): [Post!]! @join__field(graph: DISCUSSIONS)
+  reaction(id: Float!): Reaction! @join__field(graph: DISCUSSIONS)
+  reactionsByPostId(postId: Int!): [Reaction!]! @join__field(graph: DISCUSSIONS)
+  notifications(userId: Int!): [Notification!]! @join__field(graph: NOTIFICATIONS)
+}
+
+type Reaction
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+{
+  content: String!
+  id: Int!
+  post: Post!
+  user_id: Int!
+}
+
+type Subscription
+  @join__type(graph: DISCUSSIONS)
+  @join__type(graph: NOTIFICATIONS)
+{
+  discussionCreated: Discussion! @join__field(graph: DISCUSSIONS)
+  postCreated(discussionId: Int!): Post! @join__field(graph: DISCUSSIONS)
+  postDeleted: Int! @join__field(graph: DISCUSSIONS)
+  reactionCreated: Reaction! @join__field(graph: DISCUSSIONS)
+  reactionDeleted: Int! @join__field(graph: DISCUSSIONS)
+  notificationAdded(userId: Int!): Notification! @join__field(graph: NOTIFICATIONS)
+}
+
+type User
+  @join__type(graph: DISCUSSIONS)
+{
+  active: Boolean!
+  created_at: DateTime!
+  email: String!
+  is_email_verified: Boolean!
+  password: String!
+  user_id: Int!
+}

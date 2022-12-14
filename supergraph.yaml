@@ -1,0 +1,18 @@
+federation_version: 2
+subgraphs:
+  discussions:
+    routing_url: http://localhost:8202/graphql
+    schema:
+      subgraph_url: http://localhost:8202/graphql
+  notifications:
+    routing_url: http://localhost:8204/graphql
+    schema:
+      subgraph_url: http://localhost:8204/graphql
+  site_text:
+    routing_url: http://localhost:8209/graphql
+    schema:
+      subgraph_url: http://localhost:8209/graphql
+  voting:
+    routing_url: http://localhost:8210/graphql
+    schema:
+      subgraph_url: http://localhost:8210/graphql
