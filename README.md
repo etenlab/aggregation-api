@@ -89,7 +89,7 @@ GraphQLModule.forRoot<ApolloFederationDriverConfig>({
 
 Need to regenerate supergraph schema whenever we add new subgraph or make any changes in subgraph schema. We use rover cli to generate supergraph schema. see rover cli documentation [here](https://www.apollographql.com/docs/rover/) 
 
-### Add mew subgraph
+### Add new subgraph
 
 First need to add the subgraph in rover config ( supergraph.yaml ) as nelow
 
