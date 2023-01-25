@@ -58,9 +58,10 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
-## Setting up Subgraph 
+## Setting up Subgraph
 
 Install required dependencies
+
 ```bash
 npm install --save @apollo/federation @apollo/subgraph
 ```
@@ -87,11 +88,11 @@ GraphQLModule.forRoot<ApolloFederationDriverConfig>({
 
 ## Generate Supergraph schema
 
-Need to regenerate supergraph schema whenever we add new subgraph or make any changes in subgraph schema. We use rover cli to generate supergraph schema. see rover cli documentation [here](https://www.apollographql.com/docs/rover/) 
+Need to regenerate supergraph schema whenever we add new subgraph or make any changes in subgraph schema. We use rover cli to generate supergraph schema. see rover cli documentation [here](https://www.apollographql.com/docs/rover/)
 
 ### Add new subgraph
 
-First need to add the subgraph in rover config ( supergraph.yaml ) as nelow
+First need to add the subgraph in rover config ( supergraph.yaml ) as below
 
 ```bash
   voting:
