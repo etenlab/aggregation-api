@@ -20,11 +20,12 @@ dotenv.config();
           subgraphs: [
             {
               name: 'notifications',
-              url: process.env.SUBGRAPH_NOTIFICATION_URL, // 'http://localhost:8204/graphql',
+              url: process.env.SUBGRAPH_NOTIFICATION_URL,
             },
-            { name: 'discussions', url: process.env.SUBGRAPH_DISCUSSION_URL }, // 'http://localhost:8202/graphql'
-            { name: 'site_text', url: process.env.SUBGRAPH_SITE_TEXT_URL }, // 'http://localhost:8209/graphql'
-            { name: 'voting', url: process.env.SUBGRAPH_VOTING_URL }, // 'http://localhost:8210/graphql'
+            { name: 'discussions', url: process.env.SUBGRAPH_DISCUSSION_URL },
+            { name: 'site_text', url: process.env.SUBGRAPH_SITE_TEXT_URL },
+            { name: 'voting', url: process.env.SUBGRAPH_VOTING_URL },
+            { name: 'scripture', url: process.env.SUBGRAPH_SCRIPTURE_URL },
           ],
         }),
       },

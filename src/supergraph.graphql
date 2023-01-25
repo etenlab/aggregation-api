@@ -4,7 +4,6 @@ schema
 {
   query: Query
   mutation: Mutation
-  subscription: Subscription
 }
 
 directive @join__field(graph: join__Graph!, requires: join__FieldSet, provides: join__FieldSet, type: String, external: Boolean, override: String, usedOverridden: Boolean) repeatable on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
@@ -16,6 +15,25 @@ directive @join__implements(graph: join__Graph!, interface: String!) repeatable 
 directive @join__type(graph: join__Graph!, key: join__FieldSet, extension: Boolean! = false, resolvable: Boolean! = true) repeatable on OBJECT | INTERFACE | UNION | ENUM | INPUT_OBJECT | SCALAR
 
 directive @link(url: String, as: String, for: link__Purpose, import: [link__Import]) repeatable on SCHEMA
+
+type AppItem
+  @join__type(graph: SITE_TEXT)
+{
+  id: Int!
+  app_name: String!
+}
+
+input AppItemInput
+  @join__type(graph: SITE_TEXT)
+{
+  app_name: String!
+}
+
+type AppItemOutput
+  @join__type(graph: SITE_TEXT)
+{
+  appItem: AppItem!
+}
 
 type BallotEntry
   @join__type(graph: VOTING)
@@ -42,12 +60,63 @@ type BallotEntryOutput
   ballotEntry: BallotEntry!
 }
 
+type Book
+  @join__type(graph: SCRIPTURE)
+{
+  id: String!
+  name: String!
+
+  """
+  Get words in book. Returns unique words by their text value and Strongs ID. Every call performs the full graph traversal (up to some depth), so using small pageSize values will not much improve the performance
+  """
+  words(
+    """Search text to be included in the words: %search%"""
+    search: String!
+
+    """Page number starting from 0"""
+    pageNumber: Int!
+
+    """Page size, must be > 0"""
+    pageSize: Int!
+  ): [Word!]!
+
+  """Get number of words in book"""
+  wordsCount(
+    """Search text to be included in the words: %search%"""
+    search: String!
+  ): Int!
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
 scalar DateTime
   @join__type(graph: DISCUSSIONS)
   @join__type(graph: NOTIFICATIONS)
+
+type DeleteAppItemOutput
+  @join__type(graph: SITE_TEXT)
+{
+  success: Boolean!
+}
+
+type DeleteLanguageProficiencyOutput
+  @join__type(graph: SITE_TEXT)
+{
+  success: Boolean!
+}
+
+type DeleteSiteTextOutput
+  @join__type(graph: SITE_TEXT)
+{
+  success: Boolean!
+}
+
+type DeleteSiteTextTranslationOutput
+  @join__type(graph: SITE_TEXT)
+{
+  success: Boolean!
+}
 
 type Discussion
   @join__type(graph: DISCUSSIONS)
@@ -59,6 +128,15 @@ type Discussion
   table_name: String!
   row: Int!
   posts: [Post]!
+}
+
+type DiscussionSummary
+  @join__type(graph: DISCUSSIONS)
+{
+  id: Int!
+  table_name: String!
+  row: Int!
+  total_posts: Int!
 }
 
 type Election
@@ -95,12 +173,81 @@ type ElectionOutput
   election: Election!
 }
 
+enum ErrorType
+  @join__type(graph: SITE_TEXT)
+{
+  NoError
+  TokenInvalid
+  Unauthorized
+  UnknownError
+}
+
+type File
+  @join__type(graph: DISCUSSIONS)
+{
+  id: Int!
+  file_name: String!
+  file_size: Int!
+  file_type: String!
+  file_url: String!
+}
+
+input GenericInput
+  @join__type(graph: SITE_TEXT)
+{
+  id: Float!
+}
+
+type GenericOutput
+  @join__type(graph: SITE_TEXT)
+{
+  error: ErrorType!
+}
+
 scalar join__FieldSet
 
 enum join__Graph {
-  DISCUSSIONS @join__graph(name: "discussions", url: "http://localhost:8202/graphql")
-  NOTIFICATIONS @join__graph(name: "notifications", url: "http://localhost:8204/graphql")
-  VOTING @join__graph(name: "voting", url: "http://localhost:8210/graphql")
+  DISCUSSIONS @join__graph(name: "discussions", url: "http://discussion-api-devcontainer:80/graphql")
+  NOTIFICATIONS @join__graph(name: "notifications", url: "http://notifications-api-devcontainer:80/graphql")
+  SCRIPTURE @join__graph(name: "scripture", url: "http://scripture-api-devcontainer:80/graphql")
+  SITE_TEXT @join__graph(name: "site_text", url: "http://site-text-api-devcontainer:80/graphql")
+  VOTING @join__graph(name: "voting", url: "http://voting-api-devcontainer:80/graphql")
+}
+
+type LanguageProficiency
+  @join__type(graph: SITE_TEXT)
+{
+  id: Int!
+  user_id: String!
+  language_table: String!
+  language_id: Int!
+  skill_level: LanguageProficiencyEnum!
+  ref_name: String!
+}
+
+enum LanguageProficiencyEnum
+  @join__type(graph: SITE_TEXT)
+{
+  StartedLearning
+  RecognizeWords
+  Proficient
+  Conversational
+  Fluent
+}
+
+input LanguageProficiencyInput
+  @join__type(graph: SITE_TEXT)
+{
+  user_id: String!
+  skill_level: LanguageProficiencyEnum!
+  language_table: String!
+  language_id: String!
+}
+
+type LanguageProficiencyOutput
+  @join__type(graph: SITE_TEXT)
+{
+  languageProficiency: LanguageProficiency!
 }
 
 scalar link__Import
@@ -120,22 +267,33 @@ enum link__Purpose {
 type Mutation
   @join__type(graph: DISCUSSIONS)
   @join__type(graph: NOTIFICATIONS)
+  @join__type(graph: SITE_TEXT)
   @join__type(graph: VOTING)
 {
   createDiscussion(newDiscussionData: NewDiscussionInput!): Discussion! @join__field(graph: DISCUSSIONS)
   deleteDiscussion(id: Int!): Boolean! @join__field(graph: DISCUSSIONS)
-  createPost(newPostData: NewPostInput!): Post! @join__field(graph: DISCUSSIONS)
-  updatePost(id: Float!, data: NewPostInput!, userId: Float!): Post! @join__field(graph: DISCUSSIONS)
+  createPost(newPostData: NewPostInput!, files: [Int]!): Post! @join__field(graph: DISCUSSIONS)
+  deleteAttachment(attachmentId: Int!, post_id: Int!): Boolean! @join__field(graph: DISCUSSIONS)
+  updatePost(id: Int!, data: NewPostInput!): Post! @join__field(graph: DISCUSSIONS)
   deletePost(id: Int!, userId: Int!): Boolean! @join__field(graph: DISCUSSIONS)
   deletePostsByDiscussionId(discussionId: Int!): Boolean! @join__field(graph: DISCUSSIONS)
   createReaction(newReactionData: NewReactionInput!): Reaction! @join__field(graph: DISCUSSIONS)
   updateReaction(id: Float!, data: NewReactionInput!, userId: Float!): Reaction! @join__field(graph: DISCUSSIONS)
   deleteReaction(id: Int!, userId: Int!): Boolean! @join__field(graph: DISCUSSIONS)
-  createUser(email: String!): User! @join__field(graph: DISCUSSIONS)
+  createUser(email: String!, username: String!): User! @join__field(graph: DISCUSSIONS)
   acknowledgedNotification(id: Int!): Int! @join__field(graph: NOTIFICATIONS)
   setAcknowledgedNotificationsByUserId(userId: Int!): Boolean! @join__field(graph: NOTIFICATIONS)
   deleteNotification(id: Int!): Int! @join__field(graph: NOTIFICATIONS)
   deleteNotificationsByUserId(userId: Int!): Boolean! @join__field(graph: NOTIFICATIONS)
+  createAppItem(input: AppItemInput!): AppItemOutput! @join__field(graph: SITE_TEXT)
+  deleteAppItem(id: Float!): DeleteAppItemOutput! @join__field(graph: SITE_TEXT)
+  createLanguageProficiency(input: LanguageProficiencyInput!): LanguageProficiencyOutput! @join__field(graph: SITE_TEXT)
+  deleteLanguageProficiency(id: Float!): DeleteLanguageProficiencyOutput! @join__field(graph: SITE_TEXT)
+  createSiteText(input: SiteTextInput!): SiteTextOutput! @join__field(graph: SITE_TEXT)
+  updateSiteText(input: UpdateSiteTextInput!): SiteTextOutput! @join__field(graph: SITE_TEXT)
+  deleteSiteText(id: Float!): DeleteSiteTextOutput! @join__field(graph: SITE_TEXT)
+  createSiteTextTranslation(input: SiteTextTranslationInput!): SiteTextTranslationOutput! @join__field(graph: SITE_TEXT)
+  deleteSiteTextTranslation(id: Float!): DeleteSiteTextTranslationOutput! @join__field(graph: SITE_TEXT)
   createElection(input: ElectionInput!): ElectionOutput! @join__field(graph: VOTING)
   deleteElection(id: Float!): Boolean! @join__field(graph: VOTING)
   createBallotEntry(input: BallotEntryInput!): BallotEntryOutput! @join__field(graph: VOTING)
@@ -162,6 +320,7 @@ input NewPostInput
   quill_text: String!
   plain_text: String!
   postgres_language: String = "simple"
+  reply_id: Int
 }
 
 input NewReactionInput
@@ -185,31 +344,54 @@ type Notification
 }
 
 type Post
-  @join__type(graph: DISCUSSIONS)
-  @join__type(graph: NOTIFICATIONS)
+  @join__type(graph: DISCUSSIONS, key: "id")
+  @join__type(graph: NOTIFICATIONS, key: "id")
 {
   id: Int!
-  discussion: Discussion!
   reactions: [Reaction]!
+  files: [RelationshipPostFile]! @join__field(graph: DISCUSSIONS)
+  discussion_id: Int! @join__field(graph: DISCUSSIONS)
   user_id: Int!
+  user: User! @join__field(graph: DISCUSSIONS)
   quill_text: String!
   plain_text: String!
   postgres_language: String!
+  is_edited: Boolean! @join__field(graph: DISCUSSIONS)
+  reply_id: Int @join__field(graph: DISCUSSIONS)
+  reply: Post @join__field(graph: DISCUSSIONS)
   created_at: DateTime!
+  discussion: Discussion! @join__field(graph: NOTIFICATIONS)
 }
 
 type Query
   @join__type(graph: DISCUSSIONS)
   @join__type(graph: NOTIFICATIONS)
+  @join__type(graph: SCRIPTURE)
+  @join__type(graph: SITE_TEXT)
   @join__type(graph: VOTING)
 {
   discussion(id: Int!): Discussion! @join__field(graph: DISCUSSIONS)
   discussions(table_name: String!, row: Int!): [Discussion!]! @join__field(graph: DISCUSSIONS)
+  getDiscussionsSummaryByUserId(userId: Int!): [DiscussionSummary!]! @join__field(graph: DISCUSSIONS)
   post(id: Float!): Post! @join__field(graph: DISCUSSIONS)
   postsByDiscussionId(discussionId: Int!): [Post!]! @join__field(graph: DISCUSSIONS)
   reaction(id: Float!): Reaction! @join__field(graph: DISCUSSIONS)
   reactionsByPostId(postId: Int!): [Reaction!]! @join__field(graph: DISCUSSIONS)
+  getUserIdFromEmail(email: String!): User! @join__field(graph: DISCUSSIONS)
+  getUserIdFromName(name: String!): User! @join__field(graph: DISCUSSIONS)
   notifications(userId: Int!): [Notification!]! @join__field(graph: NOTIFICATIONS)
+  book(id: String!): Book! @join__field(graph: SCRIPTURE)
+  asdf(input: GenericInput!): GenericOutput! @join__field(graph: SITE_TEXT)
+  appItem(id: Float!): AppItem! @join__field(graph: SITE_TEXT)
+  appItems: [AppItem!]! @join__field(graph: SITE_TEXT)
+  languageProficiency(id: Float!): LanguageProficiency! @join__field(graph: SITE_TEXT)
+  languageProficiencies: [LanguageProficiency!]! @join__field(graph: SITE_TEXT)
+  languageProfienciesByUserId(user_id: String!): [LanguageProficiency!]! @join__field(graph: SITE_TEXT)
+  siteText(id: Float!): SiteText! @join__field(graph: SITE_TEXT)
+  siteTexts: [SiteText!]! @join__field(graph: SITE_TEXT)
+  siteTextsByApp(id: Float!, iso_code: String): [SiteText!]! @join__field(graph: SITE_TEXT)
+  siteTextTranslation(id: Float!): SiteTextTranslation! @join__field(graph: SITE_TEXT)
+  siteTextTranslations(siteTextId: Float!): [SiteTextTranslation!]! @join__field(graph: SITE_TEXT)
   election(id: Float!): Election! @join__field(graph: VOTING)
   elections: [Election!]! @join__field(graph: VOTING)
   electionByTableName(input: ElectionIdInput!): Election! @join__field(graph: VOTING)
@@ -221,25 +403,96 @@ type Query
 }
 
 type Reaction
-  @join__type(graph: DISCUSSIONS)
-  @join__type(graph: NOTIFICATIONS)
+  @join__type(graph: DISCUSSIONS, key: "id")
+  @join__type(graph: NOTIFICATIONS, key: "id")
 {
   id: Int!
-  post: Post!
+  post_id: Int! @join__field(graph: DISCUSSIONS)
   user_id: Int!
+  user: User! @join__field(graph: DISCUSSIONS)
   content: String!
+  post: Post! @join__field(graph: NOTIFICATIONS)
 }
 
-type Subscription
+type RelationshipPostFile
   @join__type(graph: DISCUSSIONS)
-  @join__type(graph: NOTIFICATIONS)
 {
-  discussionCreated: Discussion! @join__field(graph: DISCUSSIONS)
-  postCreated(discussionId: Int!): Post! @join__field(graph: DISCUSSIONS)
-  postDeleted: Int! @join__field(graph: DISCUSSIONS)
-  reactionCreated: Reaction! @join__field(graph: DISCUSSIONS)
-  reactionDeleted: Int! @join__field(graph: DISCUSSIONS)
-  notificationAdded(userId: Int!): Notification! @join__field(graph: NOTIFICATIONS)
+  id: Int!
+  post_id: Int!
+  file: File!
+}
+
+type SiteText
+  @join__type(graph: SITE_TEXT)
+{
+  id: Int!
+  app: Int!
+  site_text_key: String!
+  description: String!
+  language_table: String!
+  language_id: Int!
+  translations: Int
+}
+
+input SiteTextInput
+  @join__type(graph: SITE_TEXT)
+{
+  app: Int!
+  site_text_key: String!
+  description: String!
+  language_table: String
+  language_id: String!
+}
+
+type SiteTextOutput
+  @join__type(graph: SITE_TEXT)
+{
+  siteText: SiteText!
+}
+
+type SiteTextTranslation
+  @join__type(graph: SITE_TEXT)
+{
+  id: Int!
+  site_text: Int!
+  site_text_translation: String!
+  description_translation: String!
+  user_id: String
+  language_table: String!
+  language_id: Int!
+}
+
+input SiteTextTranslationInput
+  @join__type(graph: SITE_TEXT)
+{
+  user_id: String!
+  site_text: Int!
+  site_text_translation: String!
+  description_translation: String!
+  language_table: String!
+  language_id: String!
+}
+
+type SiteTextTranslationOutput
+  @join__type(graph: SITE_TEXT)
+{
+  siteTextTranslation: SiteTextTranslation!
+}
+
+type StrongsWord
+  @join__type(graph: SCRIPTURE)
+{
+  id: String!
+  strongsId: String!
+  strongsDef: String!
+}
+
+input UpdateSiteTextInput
+  @join__type(graph: SITE_TEXT)
+{
+  site_text_id: Int!
+  site_text_key: String!
+  description: String!
 }
 
 input UpdateVote
@@ -256,8 +509,8 @@ type User
   user_id: Int!
   active: Boolean!
   email: String!
+  username: String!
   is_email_verified: Boolean!
-  password: String!
   created_at: DateTime!
 }
 
@@ -283,4 +536,13 @@ type VoteOutput
   @join__type(graph: VOTING)
 {
   vote: Vote!
+}
+
+type Word
+  @join__type(graph: SCRIPTURE)
+{
+  id: String!
+  text: String!
+  strongsWord: StrongsWord
+  strongsWordRelationId: String
 }
